@@ -4,7 +4,7 @@ namespace MyShop.Controllers
 {
     public class HomeController : Controller
     {
-        //GET: /<controller>/
+        // GET: /Home/Index - show home page
         public IActionResult Index()
         {
             return View();

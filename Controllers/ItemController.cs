@@ -1,54 +1,116 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using MyShop.Models;
 using MyShop.ViewModels;
 
 namespace MyShop.Controllers;
 
+// Controller for managing shop items (CRUD and list views)
 public class ItemController : Controller
 {
-
-    public IActionResult Table()
+    // Database context injected via dependency injection
+    private readonly ItemDbContext _itemDbContext;
+    public ItemController(ItemDbContext itemDbContext)
     {
-        var items = GetItems();
+        _itemDbContext = itemDbContext;
+    }
+
+    // GET: /Item/Table - show items in a table view using ItemsViewModel
+    public async Task<IActionResult> Table()
+    {
+        List<Item> items = await _itemDbContext.Items.ToListAsync();
         var itemsViewModel = new ItemsViewModel(items, "Table");
         return View(itemsViewModel);
     }
-    public IActionResult Grid()
+    // GET: /Item/Grid - show items in a grid view using ItemsViewModel
+    public async Task<IActionResult> Grid()
     {
-        var items = GetItems();
+        List<Item> items = await _itemDbContext.Items.ToListAsync();
         var itemsViewModel = new ItemsViewModel(items, "Grid");
         return View(itemsViewModel);
     }
-
-    public IActionResult Details(int id)
+    // GET: /Item/Details/{id} - show details for a single item or return 404
+    public async Task<IActionResult> Details(int id)
     {
-        var items = GetItems();
-        var item = items.FirstOrDefault(i => i.ItemId == id);
+        var item = await _itemDbContext.Items.FirstOrDefaultAsync(i => i.ItemId == id);
         if (item == null)
         {
             return NotFound();
         }
         return View(item);
     }
-    
-    
-    /*public IActionResult Table()
-    {
-        var items = GetItems();
-        ViewBag.CurrentViewName = "Table";
-        return View(items);
-    }
-    public IActionResult Grid()
-    {
-        var items = GetItems();
-        ViewBag.CurrentViewName = "Grid";
-        return View(items);
-    }*/
 
+    // GET: /Item/Create - show create form
+    [HttpGet]
+    public IActionResult Create()
+    {
+        return View();
+    }
+
+    // POST: /Item/Create - create new item when form is submitted
+    [HttpPost]
+    public async Task<IActionResult> Create(Item item)
+    {
+        if(ModelState.IsValid)
+        {
+            _itemDbContext.Items.Add(item);
+            await _itemDbContext.SaveChangesAsync();
+            return RedirectToAction(nameof(Table));
+        }
+        return View(item);
+    }
+
+    // GET: /Item/Update/{id} - show edit form for an existing item
+    [HttpGet]
+    public async Task<IActionResult> Update(int id) {
+        var item = await _itemDbContext.Items.FindAsync(id);
+        if (item == null)
+        {
+            return NotFound();
+        }
+        return View(item);
+    }
+
+    // POST: /Item/Update - save updates to an item
+    [HttpPost]
+    public async Task<IActionResult> Update(Item item)
+    {
+        if (ModelState.IsValid)
+        {
+            _itemDbContext.Items.Update(item);
+            await _itemDbContext.SaveChangesAsync();
+            return RedirectToAction(nameof(Table));
+        }
+        return View(item);
+    }
+
+    // GET: /Item/Delete/{id} - show confirmation page
+    [HttpGet]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var item = await _itemDbContext.Items.FindAsync(id);
+        if (item == null)
+        {
+            return NotFound();
+        }
+        return View(item);
+    }
+
+    // POST: /Item/DeleteConfirmed - perform deletion
+    [HttpPost]
+    public async Task<IActionResult> DeleteConfirmed(int id)
+    {
+        var item = await _itemDbContext.Items.FindAsync(id);
+        if (item == null)
+        {
+            return NotFound();
+        }
+        _itemDbContext.Items.Remove(item);
+        await _itemDbContext.SaveChangesAsync();
+        return RedirectToAction(nameof(Table));
+    }
+
+    // Helper: returns a hard-coded list of sample items (used for demo or fallback)
     public List<Item> GetItems()
     {
         var items = new List<Item>();
