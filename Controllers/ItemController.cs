@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using MyShop.Models;
 using MyShop.ViewModels;
+using MyShop.DAL;
 
 namespace MyShop.Controllers;
 
@@ -9,30 +10,30 @@ namespace MyShop.Controllers;
 public class ItemController : Controller
 {
     // Database context injected via dependency injection
-    private readonly ItemDbContext _itemDbContext;
-    public ItemController(ItemDbContext itemDbContext)
+    private readonly IItemRepository _itemRepository;
+    public ItemController(IItemRepository itemRepository)
     {
-        _itemDbContext = itemDbContext;
+        _itemRepository = itemRepository;
     }
 
     // GET: /Item/Table - show items in a table view using ItemsViewModel
     public async Task<IActionResult> Table()
     {
-        List<Item> items = await _itemDbContext.Items.ToListAsync();
+        var items = await _itemRepository.GetAll();
         var itemsViewModel = new ItemsViewModel(items, "Table");
         return View(itemsViewModel);
     }
     // GET: /Item/Grid - show items in a grid view using ItemsViewModel
     public async Task<IActionResult> Grid()
     {
-        List<Item> items = await _itemDbContext.Items.ToListAsync();
+        var items = await _itemRepository.GetAll();
         var itemsViewModel = new ItemsViewModel(items, "Grid");
         return View(itemsViewModel);
     }
     // GET: /Item/Details/{id} - show details for a single item or return 404
     public async Task<IActionResult> Details(int id)
     {
-        var item = await _itemDbContext.Items.FirstOrDefaultAsync(i => i.ItemId == id);
+        var item = await _itemRepository.GetItemById(id);
         if (item == null)
         {
             return NotFound();
@@ -53,8 +54,7 @@ public class ItemController : Controller
     {
         if(ModelState.IsValid)
         {
-            _itemDbContext.Items.Add(item);
-            await _itemDbContext.SaveChangesAsync();
+            await _itemRepository.Create(item);
             return RedirectToAction(nameof(Table));
         }
         return View(item);
@@ -63,7 +63,7 @@ public class ItemController : Controller
     // GET: /Item/Update/{id} - show edit form for an existing item
     [HttpGet]
     public async Task<IActionResult> Update(int id) {
-        var item = await _itemDbContext.Items.FindAsync(id);
+        var item = await _itemRepository.GetItemById(id);
         if (item == null)
         {
             return NotFound();
@@ -77,8 +77,7 @@ public class ItemController : Controller
     {
         if (ModelState.IsValid)
         {
-            _itemDbContext.Items.Update(item);
-            await _itemDbContext.SaveChangesAsync();
+            await _itemRepository.Update(item);
             return RedirectToAction(nameof(Table));
         }
         return View(item);
@@ -88,7 +87,7 @@ public class ItemController : Controller
     [HttpGet]
     public async Task<IActionResult> Delete(int id)
     {
-        var item = await _itemDbContext.Items.FindAsync(id);
+        var item = await _itemRepository.GetItemById(id);
         if (item == null)
         {
             return NotFound();
@@ -100,13 +99,7 @@ public class ItemController : Controller
     [HttpPost]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
-        var item = await _itemDbContext.Items.FindAsync(id);
-        if (item == null)
-        {
-            return NotFound();
-        }
-        _itemDbContext.Items.Remove(item);
-        await _itemDbContext.SaveChangesAsync();
+        await _itemRepository.Delete(id);
         return RedirectToAction(nameof(Table));
     }
 
